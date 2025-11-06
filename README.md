@@ -1,46 +1,85 @@
-# 🏆 Desafio Técnico Backend Júnior Itaú - API de Transações e Estatísticas
+# 🏆 Desafio Técnico Backend Itaú - API de Transações e Estatísticas
 
-Este repositório apresenta a solução implementada para o desafio técnico de vaga Backend Júnior do Itaú. O objetivo foi construir uma **API RESTful** que gerencie o registro de transações financeiras e forneça estatísticas em tempo real sobre os dados, seguindo estritas restrições de arquitetura.
+Este repositório contém a solução implementada para o desafio técnico de Backend do Itaú, focado na criação de uma API para gerenciamento de transações e cálculo de estatísticas em tempo real, seguindo estritas restrições arquiteturais.
 
-## 🌟 Visão Geral da Solução
+A implementação é construída utilizando **Go (Golang)**, focando em concorrência, performance e código limpo.
 
-O principal desafio foi implementar um sistema que lida com dados em tempo real sem utilizar qualquer banco de dados ou camada de persistência.
+## 🌟 Visão Geral e Requisitos Atendidos
 
-A solução utiliza **Java** e **Spring Boot** para:
+O objetivo principal é fornecer uma API que:
 
-1.  Receber e validar transações via um endpoint `POST`.
-2.  Armazenar as transações **exclusivamente na memória** da aplicação.
-3.  Calcular estatísticas agregadas (soma, média, min, max, count) sobre transações ocorridas nos **últimos 60 segundos**.
-4.  Garantir a *thread-safety* e o alto desempenho no armazenamento e recuperação dos dados.
+1.  **Não utilize persistência de dados:** O armazenamento das transações é feito **exclusivamente na memória** da aplicação.
+2.  **Calcule estatísticas em tempo real:** A agregação de dados (soma, média, min, max, count) deve ser feita apenas sobre transações que ocorreram nos **últimos 60 segundos**.
+3.  **Use formato ISO 8601:** A data/hora das transações deve ser tratada neste padrão.
 
-## 🛠️ Tecnologias Utilizadas
+### ⚠️ Requisito de Arquitetura Chave: Armazenamento em Memória
+
+Para lidar com a concorrência e o requisito de armazenamento em memória, a solução utiliza estruturas de dados nativas do Go, como **slices protegidos por `sync.RWMutex`** ou canais, garantindo *thread-safety* e acesso rápido aos dados sem a sobrecarga de um banco de dados.
+
+## 🛠️ Tecnologias e Ferramentas
 
 | Categoria | Tecnologia | Detalhes |
 | :---: | :--- | :--- |
-| **Linguagem** | Java | Versão 17+ |
-| **Framework** | Spring Boot | Utilizado para criar a aplicação e configurar a API REST. |
-| **Dependências** | Spring Web, Validation | Para endpoints REST e validação de DTOs. |
-| **Ferramenta** | Maven | Gerenciador de dependências e build. |
-| **Estrutura de Dados** | `ConcurrentLinkedQueue` | Estrutura *thread-safe* escolhida para armazenamento de transações em memória. |
+| **Linguagem** | Go | Versão 1.21+ (ou superior) |
+| **Framework Web**| Gorilla Mux (Geralmente utilizado em projetos Go para rotas) | Gerenciamento eficiente de rotas da API. |
+| **Dependências** | `net/http` | Para servir a API REST. |
+| **Concorrência** | `sync.RWMutex` | Para proteger a estrutura de dados em memória contra condições de corrida. |
+| **Formato Data** | `time` package | Utilizado para *parsing* e validação do formato ISO 8601 e cálculo do intervalo de 60s. |
 
 ## 🧭 Endpoints da API
 
-A API está exposta na porta `8080` (configuração padrão do Spring Boot). O path base da aplicação é `http://localhost:8080`.
+A API é configurada para rodar em `http://localhost:8080`.
 
-| Método | Endpoint | Descrição | Status de Retorno |
+| Método | Endpoint | Descrição | Status de Sucesso |
 | :---: | :--- | :--- | :---: |
-| `POST` | `/transacoes` | Registra uma nova transação com valor e `dataHora`. | `201 Created`, `400 Bad Request`, ou `422 Unprocessable Entity` |
+| `POST` | `/transacoes` | Registra uma nova transação (`valor`, `dataHora`). | `201 Created` |
 | `GET` | `/estatisticas` | Retorna as estatísticas agregadas (sum, avg, max, min, count) de transações nos **últimos 60 segundos**. | `200 OK` |
-| `DELETE`| `/transacoes` | Limpa completamente todas as transações armazenadas na memória. | `200 OK` |
+| `DELETE`| `/transacoes` | Limpa completamente todas as transações armazenadas na memória (reset do estado). | `200 OK` |
 
 ---
 
-### Detalhe do Endpoint: `/transacoes` (`POST`)
+### Detalhe: Validações do Endpoint `/transacoes` (`POST`)
 
-**Corpo (JSON de Exemplo):**
+| Causa da Rejeição | Status HTTP Retornado |
+| :--- | :---: |
+| JSON Mal-formado ou Campos Ausentes | `400 Bad Request` |
+| Data no Futuro | `422 Unprocessable Entity` |
+| Valor Negativo ou Zero | `422 Unprocessable Entity` |
 
-```json
-{
-  "valor": 123.45,
-  "dataHora": "2025-11-05T20:55:00.000Z" 
-}
+## 📐 Estrutura do Projeto (Padrão Go)
+
+O projeto segue uma estrutura modular e limpa, típica de aplicações Go:
+
+* `cmd/`: Ponto de entrada da aplicação (`main.go`).
+* `internal/`: Contém o código de domínio e lógica de negócio.
+    * `api/`: Handlers HTTP (`controllers`).
+    * `domain/`: Entidades e regras de negócio (`services`).
+    * `infra/`: Implementações de armazenamento em memória (repositório).
+* `pkg/`: Pacotes reutilizáveis (se houver).
+
+## ⚙️ Como Executar e Testar
+
+### 1. Pré-requisitos
+
+* **Go (Golang)** Versão 1.21+ instalada.
+
+### 2. Instalação e Build
+
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/PedroBeltraoDev/desafio-itau-backend](https://github.com/PedroBeltraoDev/desafio-itau-backend)
+    cd desafio-itau-backend
+    ```
+2.  **Baixe as dependências:**
+    ```bash
+    go mod download
+    ```
+
+### 3. Execução da Aplicação
+
+Execute o arquivo principal:
+
+```bash
+go run cmd/main.go
+# Ou, se houver um arquivo binário já compilado:
+# ./desafio-itau-backend
